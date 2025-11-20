@@ -11,6 +11,10 @@ dependencies = [
     "python-multipart",
     "psycopg2",
     "sqlmodel",
+    "azure-ai-documentintelligence",
+    "openai",
+    "aiofiles",
+    "python-dotenv",
 ]
 
 [build-system]

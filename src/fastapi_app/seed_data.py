@@ -1,12 +1,14 @@
 from sqlmodel import SQLModel
 
-from fastapi_app.models import Restaurant, Review, create_db_and_tables, engine
+from fastapi_app.models import Question, Restaurant, Review, User, create_db_and_tables, engine
 
 
 def drop_all():
     # Explicitly remove these tables first to avoid cascade errors
     SQLModel.metadata.remove(Restaurant.__table__)
     SQLModel.metadata.remove(Review.__table__)
+    SQLModel.metadata.remove(User.__table__)
+    SQLModel.metadata.remove(Question.__table__)
     SQLModel.metadata.drop_all(engine)
 
 
