@@ -271,7 +271,7 @@ async def extract_questions_from_markdown(markdown_content: str, page_metadata: 
         4. لا تفسر الرموز أو تحاول كتابتها بالحروف (مثل كتابة √ بدلاً من "جذر").
         5. احتفظ باللغة الأصلية كما في المصدر، سواء عربية أو إنجليزية أو غيرها.
         6. اتبع القيم التالية فقط:
-           - "question_type": "Descriptive" | "Multiple Choice" | "True/False" | "Fill in the blank" | "Short Answer"
+           - "question_type": "Descriptive" | "Multiple Choice" | "True/False" | "Short Answer"
            - "question_difficulty": "Easy" | "Medium" | "Hard"
         7. اترك الحقول الفارغة كما هي (مثل "page_number").
         8. لا تضف علامات تنسيق (Markdown، LaTeX، HTML) إلى النصوص أو الرموز.
@@ -279,10 +279,10 @@ async def extract_questions_from_markdown(markdown_content: str, page_metadata: 
 
         [
         {{
-            "lesson_title": "اسم الدرس أو الوحدة",
+            "lesson_title": "اسم الدرس أو الوحدة" (إجباري),
             "question": "نص السؤال الكامل كما ورد في المصدر، مع الحفاظ على الرموز الدقيقة (مثل √x، H₂O، ∫ x dx، Na⁺، ΔE = mc²، إلخ)",
-            "question_type": "Descriptive|Multiple Choice|True/False|Fill in the blank|Short Answer",
-            "question_difficulty": "Easy|Medium|Hard",
+            "question_type": "Descriptive|Multiple Choice|True/False|Fill in the blank|Short Answer" (إجباري),
+            "question_difficulty": "Easy|Medium|Hard" (إجباري),
             "page_number": "",
             "answer_steps": "خطوات الحل أو التفسير إن وجدت (اختياري)",
             "correct_answer": "الإجابة النهائية إن وجدت (اختياري)"
@@ -456,89 +456,16 @@ async def store_questions_in_db(
 
 
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request, session: Session = Depends(get_db_session)):
+async def index(request: Request):
+    """Main page showing API documentation and solution description."""
     logger.info("root called")
-    statement = (
-        select(Restaurant, func.avg(Review.rating).label("avg_rating"), func.count(Review.id).label("review_count"))
-        .outerjoin(Review, Review.restaurant == Restaurant.id)
-        .group_by(Restaurant.id)
-    )
-    results = session.exec(statement).all()
+    
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "is_azure": config.client is not None,
+        "is_openai": config.openai_client is not None
+    })
 
-    restaurants = []
-    for restaurant, avg_rating, review_count in results:
-        restaurant_dict = restaurant.dict()
-        restaurant_dict["avg_rating"] = avg_rating
-        restaurant_dict["review_count"] = review_count
-        restaurant_dict["stars_percent"] = round((float(avg_rating) / 5.0) * 100) if review_count > 0 else 0
-        restaurants.append(restaurant_dict)
-
-    return templates.TemplateResponse("index.html", {"request": request, "restaurants": restaurants})
-
-
-@app.get("/create", response_class=HTMLResponse)
-async def create_restaurant(request: Request):
-    logger.info("Request for add restaurant page received")
-    return templates.TemplateResponse("create_restaurant.html", {"request": request})
-
-
-@app.post("/add", response_class=RedirectResponse)
-async def add_restaurant(
-    request: Request, restaurant_name: str = Form(...), street_address: str = Form(...), description: str = Form(...),
-    session: Session = Depends(get_db_session)
-):
-    logger.info("name: %s address: %s description: %s", restaurant_name, street_address, description)
-    restaurant = Restaurant()
-    restaurant.name = restaurant_name
-    restaurant.street_address = street_address
-    restaurant.description = description
-    session.add(restaurant)
-    session.commit()
-    session.refresh(restaurant)
-
-    return RedirectResponse(url=app.url_path_for("details", id=restaurant.id), status_code=status.HTTP_303_SEE_OTHER)
-
-
-@app.get("/details/{id}", response_class=HTMLResponse)
-async def details(request: Request, id: int, session: Session = Depends(get_db_session)):
-    restaurant = session.exec(select(Restaurant).where(Restaurant.id == id)).first()
-    reviews = session.exec(select(Review).where(Review.restaurant == id)).all()
-
-    review_count = len(reviews)
-
-    avg_rating = 0
-    if review_count > 0:
-        avg_rating = sum(review.rating for review in reviews if review.rating is not None) / review_count
-
-    restaurant_dict = restaurant.dict()
-    restaurant_dict["avg_rating"] = avg_rating
-    restaurant_dict["review_count"] = review_count
-    restaurant_dict["stars_percent"] = round((float(avg_rating) / 5.0) * 100) if review_count > 0 else 0
-
-    return templates.TemplateResponse(
-        "details.html", {"request": request, "restaurant": restaurant_dict, "reviews": reviews}
-    )
-
-
-@app.post("/review/{id}", response_class=RedirectResponse)
-async def add_review(
-    request: Request,
-    id: int,
-    user_name: str = Form(...),
-    rating: str = Form(...),
-    review_text: str = Form(...),
-    session: Session = Depends(get_db_session),
-):
-    review = Review()
-    review.restaurant = id
-    review.review_date = datetime.now()
-    review.user_name = user_name
-    review.rating = int(rating)
-    review.review_text = review_text
-    session.add(review)
-    session.commit()
-
-    return RedirectResponse(url=app.url_path_for("details", id=id), status_code=status.HTTP_303_SEE_OTHER)
 
 
 # ===== User Management Endpoints =====
@@ -971,3 +898,129 @@ async def list_questions(
     questions = session.exec(statement).all()
     
     return questions
+
+
+@app.delete("/questions")
+async def delete_questions(
+    request: Request,
+    subject_name: Optional[str] = None,
+    class_name: Optional[str] = None,
+    specialization: Optional[str] = None,
+    lesson_title: Optional[str] = None,
+    question_id: Optional[str] = None,
+    delete_all: bool = False,
+    session: Session = Depends(get_db_session)
+):
+    """
+    Delete questions with password authentication.
+    
+    **Authentication Required:** Pass password in `X-Delete-Password` header.
+    
+    **Options:**
+    - Delete specific question: Pass `question_id`
+    - Delete by filters: Pass `subject_name`, `class_name`, etc.
+    - Delete all: Set `delete_all=true` (use with caution!)
+    
+    **Example:**
+    ```bash
+    curl -X DELETE "http://localhost:8000/questions?subject_name=الرياضيات" \
+      -H "X-Delete-Password: Mhmd@123"
+    ```
+    """
+    # Check password in header
+    password = request.headers.get("X-Delete-Password")
+    if password != "Mhmd@123":
+        logger.warning("Unauthorized delete attempt")
+        raise HTTPException(status_code=401, detail="Unauthorized: Invalid password")
+    
+    logger.info("Authorized delete request received")
+    
+    # Build delete query
+    if question_id:
+        # Delete specific question by ID
+        try:
+            question_uuid = uuid.UUID(question_id)
+            statement = select(Question).where(Question.id == question_uuid)
+            question = session.exec(statement).first()
+            
+            if not question:
+                raise HTTPException(status_code=404, detail="Question not found")
+            
+            session.delete(question)
+            session.commit()
+            
+            return JSONResponse(content={
+                "status": "success",
+                "message": "Question deleted successfully",
+                "deleted_count": 1
+            })
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid question_id format")
+    
+    elif delete_all:
+        # Delete all questions
+        logger.warning("Deleting ALL questions")
+        statement = select(Question)
+        questions = session.exec(statement).all()
+        count = len(questions)
+        
+        for question in questions:
+            session.delete(question)
+        
+        session.commit()
+        
+        return JSONResponse(content={
+            "status": "success",
+            "message": f"All questions deleted",
+            "deleted_count": count
+        })
+    
+    else:
+        # Delete by filters
+        statement = select(Question)
+        
+        if subject_name:
+            statement = statement.where(Question.subject_name == subject_name)
+        if class_name:
+            statement = statement.where(Question.class_name == class_name)
+        if specialization:
+            statement = statement.where(Question.specialization == specialization)
+        if lesson_title:
+            statement = statement.where(Question.lesson_title.contains(lesson_title))
+        
+        questions = session.exec(statement).all()
+        
+        if not questions:
+            raise HTTPException(status_code=404, detail="No questions found matching the criteria")
+        
+        count = len(questions)
+        for question in questions:
+            session.delete(question)
+        
+        session.commit()
+        
+        return JSONResponse(content={
+            "status": "success",
+            "message": f"Questions deleted successfully",
+            "deleted_count": count,
+            "filters": {
+                "subject_name": subject_name,
+                "class_name": class_name,
+                "specialization": specialization,
+                "lesson_title": lesson_title
+            }
+        })
+
+
+@app.get("/questions/{question_id}", response_model=QuestionResponse)
+async def get_question(
+    question_id: uuid.UUID,
+    session: Session = Depends(get_db_session)
+):
+    """Get a specific question by ID."""
+    question = session.exec(select(Question).where(Question.id == question_id)).first()
+    
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+    
+    return question

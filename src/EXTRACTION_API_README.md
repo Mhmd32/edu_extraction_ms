@@ -19,6 +19,18 @@ OPENAI_MODEL=gpt-4o
 DEFAULT_UPLOADED_BY=system
 ```
 
+## Main Page
+
+Visit the main page for a beautiful web interface showing:
+- Real-time statistics (total questions, users, subjects)
+- Service status (Azure DI & OpenAI connectivity)
+- API documentation with copy-paste examples
+- Recent questions and subjects overview
+
+```
+http://localhost:8000/
+```
+
 ## API Endpoints
 
 ### 1. Extract Questions from PDF
@@ -87,7 +99,19 @@ print(response.json())
 }
 ```
 
-### 2. List Questions
+### 2. Get Single Question
+
+**Endpoint:** `GET /questions/{question_id}`
+
+**Description:** Retrieve a specific question by its UUID.
+
+**Example:**
+
+```bash
+curl "http://localhost:8000/questions/123e4567-e89b-12d3-a456-426614174000"
+```
+
+### 3. List Questions
 
 **Endpoint:** `GET /questions`
 
@@ -134,9 +158,48 @@ curl "http://localhost:8000/questions?subject_name=الرياضيات&limit=10"
 ]
 ```
 
+### 4. Delete Questions
+
+**Endpoint:** `DELETE /questions`
+
+**Description:** Delete questions from the database with password authentication.
+
+**Authentication:** Required via header `X-Delete-Password: Mhmd@123`
+
+**Options:**
+
+**Delete by ID:**
+```bash
+curl -X DELETE "http://localhost:8000/questions?question_id=123e4567-e89b-12d3-a456-426614174000" \
+  -H "X-Delete-Password: Mhmd@123"
+```
+
+**Delete by subject:**
+```bash
+curl -X DELETE "http://localhost:8000/questions?subject_name=الرياضيات" \
+  -H "X-Delete-Password: Mhmd@123"
+```
+
+**Delete all (use with caution!):**
+```bash
+curl -X DELETE "http://localhost:8000/questions?delete_all=true" \
+  -H "X-Delete-Password: Mhmd@123"
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Questions deleted successfully",
+  "deleted_count": 25
+}
+```
+
+📖 **See [DELETE_API_README.md](DELETE_API_README.md) for detailed documentation.**
+
 ## User Management Endpoints
 
-### 3. Create User
+### 5. Create User
 
 **Endpoint:** `POST /users`
 
@@ -152,11 +215,11 @@ curl "http://localhost:8000/questions?subject_name=الرياضيات&limit=10"
 }
 ```
 
-### 4. List Users
+### 6. List Users
 
 **Endpoint:** `GET /users?limit=10&offset=0`
 
-### 5. Update User
+### 7. Update User
 
 **Endpoint:** `PUT /users/{user_id}`
 
@@ -169,7 +232,7 @@ curl "http://localhost:8000/questions?subject_name=الرياضيات&limit=10"
 }
 ```
 
-### 6. Login
+### 8. Login
 
 **Endpoint:** `POST /login`
 

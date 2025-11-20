@@ -1,74 +1,244 @@
 {% extends "base.html" %}
-{% block title %}Restaurant List{% endblock %}
+
+{% block title %}Question Extraction API{% endblock %}
+
 {% block head %}
     {{ super() }}
     <style>
-      body {
-          min-height: 75rem;
-          padding-top: 4.5rem;
-      }
-
-      .score {
-        display: block;
-        font-size: 16px;
-        position: relative;
-        overflow: hidden;
-      }
-      
-      .score-wrap {
-        display: inline-block;
-        position: relative;
-        height: 19px;
-      }
-      
-      .score .stars-active {
-        color: #EEBD01;
-        position: relative;
-        z-index: 10;
-        display: inline-block;
-        overflow: hidden;
-        white-space: nowrap;
-      }
-      
-      .score .stars-inactive {
-        color: grey;
-        position: absolute;
-        top: 0;
-        left: 0;
-        -webkit-text-stroke: initial;
-        /* overflow: hidden; */
-      }
-  </style>
+        body { 
+            padding-top: 80px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .navbar-brand { font-weight: bold; }
+        .hero-section {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        .api-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
+        }
+        .api-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        }
+        .endpoint {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #667eea;
+        }
+        .method-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            margin-right: 10px;
+        }
+        .method-post { background: #28a745; color: white; }
+        .method-get { background: #007bff; color: white; }
+        .method-put { background: #ffc107; color: #333; }
+        .method-delete { background: #dc3545; color: white; }
+        .code-block {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-ok { background: #28a745; }
+        .status-error { background: #dc3545; }
+    </style>
 {% endblock %}
+
 {% block content %}
-      <h1>Restaurants</h1>
+<div class="hero-section">
+    <div class="text-center mb-5">
+        <h1 class="display-4 mb-3">
+            <i class="fas fa-robot text-primary"></i>
+            Question Extraction API
+        </h1>
+        <p class="lead text-muted mb-4">
+            AI-Powered Educational Content Extraction using Azure Document Intelligence & OpenAI GPT-4
+        </p>
+    </div>
 
-      {% if True %}
-          <table class="table">
-              <thead>
-                  <tr>
-                      <th>Name</th>
-                      <th>Rating</th>
-                      <th class="text-end">Details</th>
-                  </tr>
-              </thead>
-              <tbody>
-                  {% for restaurant in restaurants %}
-                      <tr>
-                          <td>{{ restaurant.name }}</td>
-                          <td>{% include "star_rating.html" %}</td>
-                          <td class="text-end"><a href="{{ url_for('details', id=restaurant.id) }}" class="btn btn-sm btn-primary">Details</a></td>
-                      </tr>
-                  {% endfor %}
-              </tbody>
-          </table>
-      {% else %}
-          <p>No restaurants exist.  Select Add new restaurant to add one.</p>
-      {% endif %}
+    <!-- Solution Description -->
+    <div class="row mb-4">
+        <div class="col-md-8 mx-auto">
+            <div class="api-card text-center">
+                <h4 class="mb-3"><i class="fas fa-lightbulb text-warning"></i> About This Solution</h4>
+                <p class="text-muted" style="font-size: 1.05rem; line-height: 1.8;">
+                    This API automatically extracts educational questions from PDF textbooks using advanced AI technology. 
+                    It combines <strong>Azure Document Intelligence</strong> for precise text extraction with <strong>OpenAI GPT-4</strong> 
+                    for intelligent question identification and categorization.
+                </p>
+                <p class="text-muted" style="font-size: 1.05rem; line-height: 1.8;">
+                    Perfect for educators, educational institutions, and content creators who need to digitize 
+                    and organize questions from Arabic and English educational materials while preserving 
+                    mathematical symbols, chemical formulas, and scientific notation.
+                </p>
+                
+                <!-- Key Features -->
+                <div class="row mt-4">
+                    <div class="col-md-6 mb-3">
+                        <div class="p-3" style="background: #f8f9fa; border-radius: 8px;">
+                            <i class="fas fa-file-pdf fa-2x text-danger mb-2"></i>
+                            <h6>PDF Processing</h6>
+                            <small class="text-muted">Upload textbooks and get structured questions</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="p-3" style="background: #f8f9fa; border-radius: 8px;">
+                            <i class="fas fa-language fa-2x text-info mb-2"></i>
+                            <h6>Arabic & English Support</h6>
+                            <small class="text-muted">Full support for multilingual content</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="p-3" style="background: #f8f9fa; border-radius: 8px;">
+                            <i class="fas fa-calculator fa-2x text-success mb-2"></i>
+                            <h6>Symbol Preservation</h6>
+                            <small class="text-muted">Maintains math formulas and scientific notation</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="p-3" style="background: #f8f9fa; border-radius: 8px;">
+                            <i class="fas fa-database fa-2x text-primary mb-2"></i>
+                            <h6>PostgreSQL Storage</h6>
+                            <small class="text-muted">Searchable and filterable question database</small>
+                        </div>
+                    </div>
+                </div>
 
+                <!-- Service Status -->
+                <div class="mt-4 pt-3" style="border-top: 1px solid #eee;">
+                    <p class="mb-2">
+                        <span class="status-indicator {% if is_azure %}status-ok{% else %}status-error{% endif %}"></span>
+                        <strong>Azure Document Intelligence:</strong> 
+                        {% if is_azure %}<span class="text-success">Connected</span>{% else %}<span class="text-danger">Not Configured</span>{% endif %}
+                        &nbsp;&nbsp;|&nbsp;&nbsp;
+                        <span class="status-indicator {% if is_openai %}status-ok{% else %}status-error{% endif %}"></span>
+                        <strong>OpenAI GPT-4:</strong> 
+                        {% if is_openai %}<span class="text-success">Connected</span>{% else %}<span class="text-danger">Not Configured</span>{% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-      <div class="d-flex justify-content-end">
-              <a href="{{ url_for('create_restaurant') }}" class="btn btn-success px-4 gap-3">Add new restaurant</a>
-      </div>
+<!-- API Documentation -->
+<div class="api-card">
+    <h4><i class="fas fa-code"></i> API Endpoints</h4>
+    <hr>
 
+    <!-- Extract Endpoint -->
+    <div class="endpoint">
+        <h5>
+            <span class="method-badge method-post">POST</span>
+            <code>/extract</code>
+        </h5>
+        <p class="text-muted">Extract questions from PDF files using AI</p>
+        <div class="code-block">
+curl -X POST "{{ request.url.scheme }}://{{ request.url.netloc }}/extract" \
+  -F "file=@textbook.pdf" \
+  -F "subject_name=الرياضيات" \
+  -F "class_name=الصف الثاني عشر" \
+  -F "uploaded_by=admin"
+        </div>
+    </div>
+
+    <!-- List Questions Endpoint -->
+    <div class="endpoint">
+        <h5>
+            <span class="method-badge method-get">GET</span>
+            <code>/questions</code>
+        </h5>
+        <p class="text-muted">List all questions with optional filters</p>
+        <div class="code-block">
+curl "{{ request.url.scheme }}://{{ request.url.netloc }}/questions?subject_name=الرياضيات&limit=10"
+        </div>
+    </div>
+
+    <!-- Delete Questions Endpoint -->
+    <div class="endpoint">
+        <h5>
+            <span class="method-badge method-delete">DELETE</span>
+            <code>/questions</code>
+        </h5>
+        <p class="text-muted">Delete questions (requires password in header)</p>
+        <div class="code-block">
+curl -X DELETE "{{ request.url.scheme }}://{{ request.url.netloc }}/questions?subject_name=الرياضيات" \
+  -H "X-Delete-Password: Mhmd@123"
+        </div>
+    </div>
+
+    <!-- User Management -->
+    <div class="endpoint">
+        <h5>
+            <span class="method-badge method-post">POST</span>
+            <code>/users</code>
+        </h5>
+        <p class="text-muted">Create new user account</p>
+        <div class="code-block">
+curl -X POST "{{ request.url.scheme }}://{{ request.url.netloc }}/users" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"teacher1","password":"pass123","display_name":"أستاذ أحمد"}'
+        </div>
+    </div>
+
+    <!-- Login -->
+    <div class="endpoint">
+        <h5>
+            <span class="method-badge method-post">POST</span>
+            <code>/login</code>
+        </h5>
+        <p class="text-muted">Authenticate user</p>
+        <div class="code-block">
+curl -X POST "{{ request.url.scheme }}://{{ request.url.netloc }}/login" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"teacher1","password":"pass123"}'
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="/docs" class="btn btn-primary btn-lg">
+            <i class="fas fa-book"></i> Interactive API Documentation
+        </a>
+        <a href="/health" class="btn btn-outline-secondary btn-lg ms-2" target="_blank">
+            <i class="fas fa-heartbeat"></i> Health Check
+        </a>
+    </div>
+</div>
+
+<!-- Footer -->
+<div class="text-center text-white mt-5 mb-4">
+    <p>
+        <i class="fas fa-code"></i> Powered by FastAPI, Azure Document Intelligence, OpenAI GPT-4 & PostgreSQL
+    </p>
+    <p>
+        <a href="https://github.com" class="text-white me-3"><i class="fab fa-github"></i> GitHub</a>
+        <a href="/docs" class="text-white"><i class="fas fa-book"></i> API Docs</a>
+    </p>
+</div>
 {% endblock %}
