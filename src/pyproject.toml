@@ -15,6 +15,7 @@ dependencies = [
     "openai",
     "aiofiles",
     "python-dotenv",
+    "aiohttp"
 ]
 
 [build-system]
