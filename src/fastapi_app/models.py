@@ -1,6 +1,7 @@
 import logging
 import os
 import typing
+import uuid
 from datetime import datetime
 from urllib.parse import quote_plus
 
@@ -62,3 +63,43 @@ class Review(SQLModel, table=True):
 
     def __str__(self):
         return f"{self.name}"
+
+
+class User(SQLModel, table=True):
+    __tablename__ = "users"
+    
+    id: typing.Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
+    username: str = Field(max_length=100, unique=True, index=True)
+    display_name: typing.Optional[str] = Field(default=None, max_length=200)
+    password_hash: str = Field(max_length=64)
+    is_admin: bool = Field(default=False)
+    is_active: bool = Field(default=True)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+    def __str__(self):
+        return f"{self.username}"
+
+
+class Question(SQLModel, table=True):
+    __tablename__ = "questions"
+    
+    id: typing.Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
+    file_name: str = Field(max_length=500)
+    subject_name: str = Field(max_length=200)
+    lesson_title: str = Field(max_length=500)
+    class_name: typing.Optional[str] = Field(default=None, max_length=100)
+    specialization: typing.Optional[str] = Field(default=None, max_length=200)
+    question: str
+    question_type: typing.Optional[str] = Field(default=None, max_length=50)
+    question_difficulty: typing.Optional[str] = Field(default=None, max_length=20)
+    page_number: typing.Optional[str] = Field(default=None, max_length=20)
+    answer_steps: typing.Optional[str] = Field(default=None)
+    correct_answer: typing.Optional[str] = Field(default=None)
+    uploaded_by: str = Field(max_length=100)
+    updated_by: typing.Optional[str] = Field(default=None, max_length=100)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+    def __str__(self):
+        return f"{self.question[:50]}..."
