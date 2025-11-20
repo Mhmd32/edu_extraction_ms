@@ -102,6 +102,55 @@ def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
 
+@app.get("/health")
+async def health_check():
+    """
+    Health check endpoint to verify configuration and service status.
+    """
+    health_status = {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "environment": {
+            "is_azure": os.getenv("WEBSITE_HOSTNAME") is not None,
+            "website_hostname": os.getenv("WEBSITE_HOSTNAME", "localhost")
+        },
+        "services": {
+            "database": "unknown",
+            "azure_document_intelligence": "not_configured",
+            "openai": "not_configured"
+        },
+        "configuration": {
+            "openai_model": config.openai_model,
+            "default_uploaded_by": config.default_uploaded_by
+        }
+    }
+    
+    # Check Azure Document Intelligence
+    if config.client:
+        health_status["services"]["azure_document_intelligence"] = "configured"
+    else:
+        health_status["services"]["azure_document_intelligence"] = "not_configured"
+        health_status["status"] = "degraded"
+    
+    # Check OpenAI
+    if config.openai_client:
+        health_status["services"]["openai"] = "configured"
+    else:
+        health_status["services"]["openai"] = "not_configured"
+        health_status["status"] = "degraded"
+    
+    # Check database connection
+    try:
+        with Session(engine) as session:
+            session.exec(select(User).limit(1))
+        health_status["services"]["database"] = "connected"
+    except Exception as e:
+        health_status["services"]["database"] = f"error: {str(e)}"
+        health_status["status"] = "unhealthy"
+    
+    return JSONResponse(content=health_status)
+
+
 async def cleanup_temp_dir(temp_dir: str):
     """Clean up temporary directory."""
     try:
