@@ -75,10 +75,10 @@
     <div class="text-center mb-5">
         <h1 class="display-4 mb-3">
             <i class="fas fa-robot text-primary"></i>
-            Question Extraction API
+            EduExtraction APIs
         </h1>
         <p class="lead text-muted mb-4">
-            AI-Powered Educational Content Extraction using Azure Document Intelligence & OpenAI GPT-4
+            AI-Powered Educational Content Extraction using AI Agents.
         </p>
     </div>
 
@@ -89,7 +89,7 @@
                 <h4 class="mb-3"><i class="fas fa-lightbulb text-warning"></i> About This Solution</h4>
                 <p class="text-muted" style="font-size: 1.05rem; line-height: 1.8;">
                     This API automatically extracts educational questions from PDF textbooks using advanced AI technology. 
-                    It combines <strong>Azure Document Intelligence</strong> for precise text extraction with <strong>OpenAI GPT-4</strong> 
+                    It combines <strong>Azure Document Intelligence</strong> for precise text extraction with <strong>OpenAI GPT-4o</strong> 
                     for intelligent question identification and categorization.
                 </p>
                 <p class="text-muted" style="font-size: 1.05rem; line-height: 1.8;">
@@ -147,78 +147,10 @@
     </div>
 </div>
 
-<!-- API Documentation -->
-<div class="api-card">
-    <h4><i class="fas fa-code"></i> API Endpoints</h4>
-    <hr>
-
-    <!-- Extract Endpoint -->
-    <div class="endpoint">
-        <h5>
-            <span class="method-badge method-post">POST</span>
-            <code>/extract</code>
-        </h5>
-        <p class="text-muted">Extract questions from PDF files using AI</p>
-        <div class="code-block">
-curl -X POST "{{ request.url.scheme }}://{{ request.url.netloc }}/extract" \
-  -F "file=@textbook.pdf" \
-  -F "subject_name=الرياضيات" \
-  -F "class_name=الصف الثاني عشر" \
-  -F "uploaded_by=admin"
-        </div>
-    </div>
-
-    <!-- List Questions Endpoint -->
-    <div class="endpoint">
-        <h5>
-            <span class="method-badge method-get">GET</span>
-            <code>/questions</code>
-        </h5>
-        <p class="text-muted">List all questions with optional filters</p>
-        <div class="code-block">
-curl "{{ request.url.scheme }}://{{ request.url.netloc }}/questions?subject_name=الرياضيات&limit=10"
-        </div>
-    </div>
-
-    <!-- User Management -->
-    <div class="endpoint">
-        <h5>
-            <span class="method-badge method-post">POST</span>
-            <code>/users</code>
-        </h5>
-        <p class="text-muted">Create new user account</p>
-        <div class="code-block">
-curl -X POST "{{ request.url.scheme }}://{{ request.url.netloc }}/users" \
-  -H "Content-Type: application/json" \
-  -d '{"username":"teacher1","password":"pass123","display_name":"أستاذ أحمد"}'
-        </div>
-    </div>
-
-    <!-- Login -->
-    <div class="endpoint">
-        <h5>
-            <span class="method-badge method-post">POST</span>
-            <code>/login</code>
-        </h5>
-        <p class="text-muted">Authenticate user</p>
-        <div class="code-block">
-curl -X POST "{{ request.url.scheme }}://{{ request.url.netloc }}/login" \
-  -H "Content-Type: application/json" \
-  -d '{"username":"teacher1","password":"pass123"}'
-        </div>
-    </div>
-
-    <div class="mt-4">
-        <a href="/health" class="btn btn-primary btn-lg" target="_blank">
-            <i class="fas fa-heartbeat"></i> Health Check
-        </a>
-    </div>
-</div>
-
 <!-- Footer -->
 <div class="text-center text-white mt-5 mb-4">
     <p>
-        <i class="fas fa-code"></i> Powered by FastAPI, Azure Document Intelligence, OpenAI GPT-4 & PostgreSQL
+        <i class="fas fa-code"></i> Developed by Mohammed Adil <a href="https://www.linkedin.com/in/mohammed-adil-yassin-b6a835111/" target="_blank"><i class="fas fa-linkedin"></i></a>
     </p>
     <p>
         <a href="/health" class="text-white"><i class="fas fa-heartbeat"></i> Health Check</a>
