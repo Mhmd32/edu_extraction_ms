@@ -751,10 +751,9 @@ async def extract_questions(
                 
                 lesson_title_raw = normalized_question.get("lesson_title")
                 if lesson_title_raw is None or str(lesson_title_raw).strip() == "":
-                    logger.error(f"Missing lesson_title in question payload: {normalized_question}")
-                    raise HTTPException(status_code=500, detail="lesson_title is required for each question.")
-                
-                normalized_question["lesson_title"] = str(lesson_title_raw).strip()
+                    normalized_question["lesson_title"] = subject_name_value
+                else:
+                    normalized_question["lesson_title"] = str(lesson_title_raw).strip()
                 
                 if normalized_question.get("answer_steps") is not None:
                     answer_steps_value = str(normalized_question["answer_steps"]).strip()
