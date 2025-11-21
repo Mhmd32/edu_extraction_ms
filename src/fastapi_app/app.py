@@ -846,6 +846,7 @@ class QuestionResponse(BaseModel):
 
 @app.get("/questions", response_model=list[QuestionResponse])
 async def list_questions(
+    file_name: Optional[str] = None,
     subject_name: Optional[str] = None,
     class_name: Optional[str] = None,
     specialization: Optional[str] = None,
@@ -859,25 +860,28 @@ async def list_questions(
     """
     List questions with optional filters and pagination.
     
+    - **file_name**: Filter by file name
     - **subject_name**: Filter by subject name
     - **class_name**: Filter by class name
     - **specialization**: Filter by specialization
     - **lesson_title**: Filter by lesson title
     - **question_type**: Filter by question type
     - **question_difficulty**: Filter by question difficulty
-    - **limit**: Number of results to return (default: 100, max: 500)
+    - **limit**: Number of results to return (default: 100, max: 100000)
     - **offset**: Number of results to skip (default: 0)
     """
-    logger.info(f"Listing questions with filters: subject_name={subject_name}, class_name={class_name}")
+    logger.info(f"Listing questions with filters: file_name={file_name}, subject_name={subject_name}, class_name={class_name}")
     
     # Limit validation
-    if limit > 500:
-        limit = 500
+    if limit > 100000:
+        limit = 100000
     
     # Build query
     statement = select(Question)
     
     # Apply filters
+    if file_name:
+        statement = statement.where(Question.file_name == file_name)
     if subject_name:
         statement = statement.where(Question.subject_name == subject_name)
     if class_name:
@@ -911,3 +915,87 @@ async def get_question(
         raise HTTPException(status_code=404, detail="Question not found")
     
     return question
+
+
+# ===== Filter Options Endpoints =====
+
+@app.get("/filters/filenames")
+async def get_filenames(session: Session = Depends(get_db_session)):
+    """
+    Get list of distinct file names for filtering.
+    
+    Returns a list of all unique file names that have questions in the database.
+    Useful for populating filter dropdowns in the frontend.
+    """
+    logger.info("Fetching list of file names")
+    
+    statement = select(Question.file_name).distinct().order_by(Question.file_name)
+    filenames = session.exec(statement).all()
+    
+    # Filter out None values
+    filenames = [f for f in filenames if f is not None]
+    
+    return {
+        "filenames": filenames,
+        "count": len(filenames)
+    }
+
+
+@app.get("/filters/subjects")
+async def get_subjects(session: Session = Depends(get_db_session)):
+    """
+    Get list of distinct subject names for filtering.
+    
+    Returns a list of all unique subject names that have questions in the database.
+    Useful for populating filter dropdowns in the frontend.
+    """
+    logger.info("Fetching list of subjects")
+    
+    statement = select(Question.subject_name).distinct().order_by(Question.subject_name)
+    subjects = session.exec(statement).all()
+    
+    # Filter out None values
+    subjects = [s for s in subjects if s is not None]
+    
+    return {
+        "subjects": subjects,
+        "count": len(subjects)
+    }
+
+
+@app.get("/filters/classes")
+async def get_classes(session: Session = Depends(get_db_session)):
+    """
+    Get list of distinct class names for filtering.
+    
+    Returns a list of all unique class names that have questions in the database.
+    Useful for populating filter dropdowns in the frontend.
+    """
+    logger.info("Fetching list of classes")
+    
+    statement = select(Question.class_name).distinct().where(Question.class_name.isnot(None)).order_by(Question.class_name)
+    classes = session.exec(statement).all()
+    
+    return {
+        "classes": classes,
+        "count": len(classes)
+    }
+
+
+@app.get("/filters/specializations")
+async def get_specializations(session: Session = Depends(get_db_session)):
+    """
+    Get list of distinct specializations for filtering.
+    
+    Returns a list of all unique specializations that have questions in the database.
+    Useful for populating filter dropdowns in the frontend.
+    """
+    logger.info("Fetching list of specializations")
+    
+    statement = select(Question.specialization).distinct().where(Question.specialization.isnot(None)).order_by(Question.specialization)
+    specializations = session.exec(statement).all()
+    
+    return {
+        "specializations": specializations,
+        "count": len(specializations)
+    }

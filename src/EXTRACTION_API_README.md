@@ -119,6 +119,7 @@ curl "http://localhost:8000/questions/123e4567-e89b-12d3-a456-426614174000"
 **Description:** Retrieve stored questions with optional filters.
 
 **Query Parameters:**
+- `file_name` (optional): Filter by file name
 - `subject_name` (optional): Filter by subject
 - `class_name` (optional): Filter by class
 - `specialization` (optional): Filter by specialization
@@ -128,10 +129,17 @@ curl "http://localhost:8000/questions/123e4567-e89b-12d3-a456-426614174000"
 - `limit` (optional): Number of results (default: 100, max: 500)
 - `offset` (optional): Pagination offset (default: 0)
 
-**Example:**
+**Examples:**
 
 ```bash
+# Filter by subject
 curl "http://localhost:8000/questions?subject_name=الرياضيات&limit=10"
+
+# Filter by file name
+curl "http://localhost:8000/questions?file_name=textbook.pdf&limit=10"
+
+# Multiple filters
+curl "http://localhost:8000/questions?subject_name=الرياضيات&class_name=الصف الثاني عشر&limit=10"
 ```
 
 **Response:**
@@ -159,9 +167,69 @@ curl "http://localhost:8000/questions?subject_name=الرياضيات&limit=10"
 ]
 ```
 
+## Filter Options Endpoints
+
+These endpoints provide lists of available filter values for the frontend.
+
+### 4. Get File Names List
+
+**Endpoint:** `GET /filters/filenames`
+
+**Description:** Get a list of all distinct file names.
+
+**Response:**
+```json
+{
+  "filenames": ["textbook1.pdf", "textbook2.pdf", "exercises.pdf"],
+  "count": 3
+}
+```
+
+### 5. Get Subjects List
+
+**Endpoint:** `GET /filters/subjects`
+
+**Description:** Get a list of all distinct subject names.
+
+**Response:**
+```json
+{
+  "subjects": ["الرياضيات", "الفيزياء", "الكيمياء"],
+  "count": 3
+}
+```
+
+### 6. Get Classes List
+
+**Endpoint:** `GET /filters/classes`
+
+**Description:** Get a list of all distinct class names.
+
+**Response:**
+```json
+{
+  "classes": ["الصف الثاني عشر", "الصف الحادي عشر"],
+  "count": 2
+}
+```
+
+### 7. Get Specializations List
+
+**Endpoint:** `GET /filters/specializations`
+
+**Description:** Get a list of all distinct specializations.
+
+**Response:**
+```json
+{
+  "specializations": ["علمي", "أدبي"],
+  "count": 2
+}
+```
+
 ## User Management Endpoints
 
-### 4. Create User
+### 8. Create User
 
 **Endpoint:** `POST /users`
 
@@ -177,11 +245,11 @@ curl "http://localhost:8000/questions?subject_name=الرياضيات&limit=10"
 }
 ```
 
-### 5. List Users
+### 9. List Users
 
 **Endpoint:** `GET /users?limit=10&offset=0`
 
-### 6. Update User
+### 10. Update User
 
 **Endpoint:** `PUT /users/{user_id}`
 
@@ -194,7 +262,7 @@ curl "http://localhost:8000/questions?subject_name=الرياضيات&limit=10"
 }
 ```
 
-### 7. Login
+### 11. Login
 
 **Endpoint:** `POST /login`
 

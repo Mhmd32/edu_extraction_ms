@@ -209,14 +209,18 @@ Current available endpoints:
 | GET | `/` | Homepage with UI |
 | GET | `/health` | Service health check |
 | POST | `/extract` | Extract questions from PDF |
-| GET | `/questions` | List questions with filters |
+| GET | `/questions` | List questions with filters (including file_name) |
 | GET | `/questions/{id}` | Get single question |
+| GET | `/filters/filenames` | Get list of file names for filtering |
+| GET | `/filters/subjects` | Get list of subjects for filtering |
+| GET | `/filters/classes` | Get list of classes for filtering |
+| GET | `/filters/specializations` | Get list of specializations for filtering |
 | POST | `/users` | Create new user |
 | GET | `/users` | List users |
 | PUT | `/users/{id}` | Update user |
 | POST | `/login` | User authentication |
 
-**Total:** 9 endpoints
+**Total:** 13 endpoints
 
 **Disabled for security:**
 - ❌ `/docs` - Swagger UI
