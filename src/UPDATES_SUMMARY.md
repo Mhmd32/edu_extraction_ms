@@ -48,75 +48,11 @@ The homepage (`/`) now displays:
 http://localhost:8000/
 ```
 
-### 3. Added Delete Questions API ✓
-
-**Endpoint:** `DELETE /questions`
-
-**Authentication:** Password-protected via header
-```
-X-Delete-Password: Mhmd@123
-```
-
-**Delete Options:**
-
-1. **By Question ID:**
-   ```bash
-   curl -X DELETE "http://localhost:8000/questions?question_id={UUID}" \
-     -H "X-Delete-Password: Mhmd@123"
-   ```
-
-2. **By Filters:**
-   ```bash
-   # Delete by subject
-   curl -X DELETE "http://localhost:8000/questions?subject_name=الرياضيات" \
-     -H "X-Delete-Password: Mhmd@123"
-   
-   # Delete by class
-   curl -X DELETE "http://localhost:8000/questions?class_name=الصف الثاني عشر" \
-     -H "X-Delete-Password: Mhmd@123"
-   
-   # Delete by lesson
-   curl -X DELETE "http://localhost:8000/questions?lesson_title=التفاضل" \
-     -H "X-Delete-Password: Mhmd@123"
-   
-   # Combine filters
-   curl -X DELETE "http://localhost:8000/questions?subject_name=الفيزياء&class_name=الصف الثاني عشر" \
-     -H "X-Delete-Password: Mhmd@123"
-   ```
-
-3. **Delete All (Use with caution!):**
-   ```bash
-   curl -X DELETE "http://localhost:8000/questions?delete_all=true" \
-     -H "X-Delete-Password: Mhmd@123"
-   ```
-
-**Security Features:**
-- Password authentication required
-- All attempts logged
-- Unauthorized attempts generate warnings
-- Returns detailed count of deleted records
-
-**Response Example:**
-```json
-{
-  "status": "success",
-  "message": "Questions deleted successfully",
-  "deleted_count": 25,
-  "filters": {
-    "subject_name": "الرياضيات",
-    "class_name": null,
-    "specialization": null,
-    "lesson_title": null
-  }
-}
-```
-
-### 4. Enhanced UI/UX
+### 3. Enhanced UI/UX
 
 **Updated Navbar:**
 - Changed branding from "Azure Restaurant Review" to "Question Extraction API"
 - Added quick links to:
-  - API Docs (`/docs`)
   - Health Check (`/health`)
   - Resource links (Azure, OpenAI, FastAPI docs)
 
@@ -140,17 +76,9 @@ X-Delete-Password: Mhmd@123
 1. **EXTRACTION_API_README.md** - Complete API reference
    - All endpoints with examples
    - Request/response formats
-   - Authentication details
    - Database schema
 
-2. **DELETE_API_README.md** - Detailed delete API documentation
-   - All delete options
-   - Security notes
-   - Python examples
-   - Troubleshooting guide
-   - Best practices
-
-3. **DEPLOYMENT_GUIDE.md** - Azure deployment instructions
+2. **DEPLOYMENT_GUIDE.md** - Azure deployment instructions
    - Step-by-step setup
    - Azure services configuration
    - Environment variables
@@ -169,6 +97,12 @@ X-Delete-Password: Mhmd@123
 
 6. **UPDATES_SUMMARY.md** (this file) - Summary of changes
 
+## 🔒 Security Features
+
+- ✅ **Swagger UI Disabled** - `/docs` endpoint is disabled for production security
+- ✅ **ReDoc Disabled** - `/redoc` endpoint is disabled for production security
+- ✅ **No Delete API** - Questions cannot be deleted via API (database-level control only)
+
 ## 🎯 Current Features
 
 ### Question Extraction
@@ -183,7 +117,6 @@ X-Delete-Password: Mhmd@123
 ### Question Management
 - ✅ List questions with filters
 - ✅ Get single question by ID
-- ✅ Delete by ID, filters, or all
 - ✅ Pagination support
 - ✅ Subject/class/difficulty filtering
 
@@ -235,9 +168,7 @@ uvicorn fastapi_app.app:app --reload
 ### 2. Access the Application
 
 - **Homepage:** http://localhost:8000
-- **API Docs:** http://localhost:8000/docs
 - **Health Check:** http://localhost:8000/health
-- **ReDoc:** http://localhost:8000/redoc
 
 ### 3. Test the API
 
@@ -260,29 +191,9 @@ curl -X POST "http://localhost:8000/extract" \
 
 # List questions
 curl "http://localhost:8000/questions?limit=5"
-
-# Delete questions
-curl -X DELETE "http://localhost:8000/questions?subject_name=الرياضيات" \
-  -H "X-Delete-Password: Mhmd@123"
 ```
 
 ## 🔒 Security
-
-### Delete API Password
-- Default password: `Mhmd@123`
-- Sent via `X-Delete-Password` header
-- All attempts logged
-- Failed attempts generate warnings
-
-### To Change the Password:
-
-Edit `src/fastapi_app/app.py`, line ~950:
-
-```python
-if password != "Mhmd@123":  # Change this
-```
-
-Then redeploy.
 
 ### User Passwords
 - Hashed using SHA-256
@@ -295,19 +206,21 @@ Current available endpoints:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/` | Homepage with UI and stats |
+| GET | `/` | Homepage with UI |
 | GET | `/health` | Service health check |
-| GET | `/docs` | Swagger API documentation |
 | POST | `/extract` | Extract questions from PDF |
 | GET | `/questions` | List questions with filters |
 | GET | `/questions/{id}` | Get single question |
-| DELETE | `/questions` | Delete questions (password required) |
 | POST | `/users` | Create new user |
 | GET | `/users` | List users |
 | PUT | `/users/{id}` | Update user |
 | POST | `/login` | User authentication |
 
-**Total:** 12 endpoints
+**Total:** 9 endpoints
+
+**Disabled for security:**
+- ❌ `/docs` - Swagger UI
+- ❌ `/redoc` - ReDoc documentation
 
 ## 🎨 UI Preview
 
@@ -353,6 +266,8 @@ Current available endpoints:
 ### Breaking Changes:
 
 - ❌ Restaurant API endpoints removed (if anyone was using them)
+- ❌ DELETE /questions endpoint removed (for security)
+- ❌ /docs and /redoc endpoints disabled (for security)
 - ✅ Question extraction endpoints unchanged
 - ✅ User management endpoints unchanged
 - ✅ All existing data preserved
@@ -374,12 +289,8 @@ curl http://localhost:8000/health | jq
 # Test homepage (should return HTML)
 curl http://localhost:8000
 
-# Test delete (should fail without password)
-curl -X DELETE "http://localhost:8000/questions?delete_all=true"
-
-# Test delete (should succeed with password)
-curl -X DELETE "http://localhost:8000/questions?subject_name=test" \
-  -H "X-Delete-Password: Mhmd@123"
+# Test docs endpoint (should return 404 - disabled for security)
+curl http://localhost:8000/docs
 ```
 
 ## 🎯 Next Steps

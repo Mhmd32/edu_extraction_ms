@@ -33,7 +33,7 @@ if os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING"):
 
 
 # Setup FastAPI app:
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None)  # Disable Swagger UI and ReDoc
 parent_path = pathlib.Path(__file__).parent.parent
 app.mount("/mount", StaticFiles(directory=parent_path / "static"), name="static")
 templates = Jinja2Templates(directory=parent_path / "templates")
@@ -897,118 +897,6 @@ async def list_questions(
     questions = session.exec(statement).all()
     
     return questions
-
-
-@app.delete("/questions")
-async def delete_questions(
-    request: Request,
-    subject_name: Optional[str] = None,
-    class_name: Optional[str] = None,
-    specialization: Optional[str] = None,
-    lesson_title: Optional[str] = None,
-    question_id: Optional[str] = None,
-    delete_all: bool = False,
-    session: Session = Depends(get_db_session)
-):
-    """
-    Delete questions with password authentication.
-    
-    **Authentication Required:** Pass password in `X-Delete-Password` header.
-    
-    **Options:**
-    - Delete specific question: Pass `question_id`
-    - Delete by filters: Pass `subject_name`, `class_name`, etc.
-    - Delete all: Set `delete_all=true` (use with caution!)
-    
-    **Example:**
-    ```bash
-    curl -X DELETE "http://localhost:8000/questions?subject_name=الرياضيات" \
-      -H "X-Delete-Password: Mhmd@123"
-    ```
-    """
-    # Check password in header
-    password = request.headers.get("X-Delete-Password")
-    if password != "Mhmd@123":
-        logger.warning("Unauthorized delete attempt")
-        raise HTTPException(status_code=401, detail="Unauthorized: Invalid password")
-    
-    logger.info("Authorized delete request received")
-    
-    # Build delete query
-    if question_id:
-        # Delete specific question by ID
-        try:
-            question_uuid = uuid.UUID(question_id)
-            statement = select(Question).where(Question.id == question_uuid)
-            question = session.exec(statement).first()
-            
-            if not question:
-                raise HTTPException(status_code=404, detail="Question not found")
-            
-            session.delete(question)
-            session.commit()
-            
-            return JSONResponse(content={
-                "status": "success",
-                "message": "Question deleted successfully",
-                "deleted_count": 1
-            })
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid question_id format")
-    
-    elif delete_all:
-        # Delete all questions
-        logger.warning("Deleting ALL questions")
-        statement = select(Question)
-        questions = session.exec(statement).all()
-        count = len(questions)
-        
-        for question in questions:
-            session.delete(question)
-        
-        session.commit()
-        
-        return JSONResponse(content={
-            "status": "success",
-            "message": f"All questions deleted",
-            "deleted_count": count
-        })
-    
-    else:
-        # Delete by filters
-        statement = select(Question)
-        
-        if subject_name:
-            statement = statement.where(Question.subject_name == subject_name)
-        if class_name:
-            statement = statement.where(Question.class_name == class_name)
-        if specialization:
-            statement = statement.where(Question.specialization == specialization)
-        if lesson_title:
-            statement = statement.where(Question.lesson_title.contains(lesson_title))
-        
-        questions = session.exec(statement).all()
-        
-        if not questions:
-            raise HTTPException(status_code=404, detail="No questions found matching the criteria")
-        
-        count = len(questions)
-        for question in questions:
-            session.delete(question)
-        
-        session.commit()
-        
-        return JSONResponse(content={
-            "status": "success",
-            "message": f"Questions deleted successfully",
-            "deleted_count": count,
-            "filters": {
-                "subject_name": subject_name,
-                "class_name": class_name,
-                "specialization": specialization,
-                "lesson_title": lesson_title
-            }
-        })
 
 
 @app.get("/questions/{question_id}", response_model=QuestionResponse)

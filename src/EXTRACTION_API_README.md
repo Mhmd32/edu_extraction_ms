@@ -22,14 +22,15 @@ DEFAULT_UPLOADED_BY=system
 ## Main Page
 
 Visit the main page for a beautiful web interface showing:
-- Real-time statistics (total questions, users, subjects)
+- Solution description and key features
 - Service status (Azure DI & OpenAI connectivity)
 - API documentation with copy-paste examples
-- Recent questions and subjects overview
 
 ```
 http://localhost:8000/
 ```
+
+**Note:** The Swagger UI (/docs) and ReDoc (/redoc) are disabled for security.
 
 ## API Endpoints
 
@@ -158,48 +159,9 @@ curl "http://localhost:8000/questions?subject_name=الرياضيات&limit=10"
 ]
 ```
 
-### 4. Delete Questions
-
-**Endpoint:** `DELETE /questions`
-
-**Description:** Delete questions from the database with password authentication.
-
-**Authentication:** Required via header `X-Delete-Password: Mhmd@123`
-
-**Options:**
-
-**Delete by ID:**
-```bash
-curl -X DELETE "http://localhost:8000/questions?question_id=123e4567-e89b-12d3-a456-426614174000" \
-  -H "X-Delete-Password: Mhmd@123"
-```
-
-**Delete by subject:**
-```bash
-curl -X DELETE "http://localhost:8000/questions?subject_name=الرياضيات" \
-  -H "X-Delete-Password: Mhmd@123"
-```
-
-**Delete all (use with caution!):**
-```bash
-curl -X DELETE "http://localhost:8000/questions?delete_all=true" \
-  -H "X-Delete-Password: Mhmd@123"
-```
-
-**Response:**
-```json
-{
-  "status": "success",
-  "message": "Questions deleted successfully",
-  "deleted_count": 25
-}
-```
-
-📖 **See [DELETE_API_README.md](DELETE_API_README.md) for detailed documentation.**
-
 ## User Management Endpoints
 
-### 5. Create User
+### 4. Create User
 
 **Endpoint:** `POST /users`
 
@@ -215,11 +177,11 @@ curl -X DELETE "http://localhost:8000/questions?delete_all=true" \
 }
 ```
 
-### 6. List Users
+### 5. List Users
 
 **Endpoint:** `GET /users?limit=10&offset=0`
 
-### 7. Update User
+### 6. Update User
 
 **Endpoint:** `PUT /users/{user_id}`
 
@@ -232,7 +194,7 @@ curl -X DELETE "http://localhost:8000/questions?delete_all=true" \
 }
 ```
 
-### 8. Login
+### 7. Login
 
 **Endpoint:** `POST /login`
 
@@ -310,9 +272,9 @@ python -m fastapi_app.seed_data
 uvicorn fastapi_app.app:app --reload
 ```
 
-5. Access API documentation:
-   - Swagger UI: http://localhost:8000/docs
-   - ReDoc: http://localhost:8000/redoc
+5. Access the application:
+   - Homepage: http://localhost:8000/
+   - Health Check: http://localhost:8000/health
 
 ## Notes
 

@@ -180,19 +180,6 @@ curl "{{ request.url.scheme }}://{{ request.url.netloc }}/questions?subject_name
         </div>
     </div>
 
-    <!-- Delete Questions Endpoint -->
-    <div class="endpoint">
-        <h5>
-            <span class="method-badge method-delete">DELETE</span>
-            <code>/questions</code>
-        </h5>
-        <p class="text-muted">Delete questions (requires password in header)</p>
-        <div class="code-block">
-curl -X DELETE "{{ request.url.scheme }}://{{ request.url.netloc }}/questions?subject_name=الرياضيات" \
-  -H "X-Delete-Password: Mhmd@123"
-        </div>
-    </div>
-
     <!-- User Management -->
     <div class="endpoint">
         <h5>
@@ -222,10 +209,7 @@ curl -X POST "{{ request.url.scheme }}://{{ request.url.netloc }}/login" \
     </div>
 
     <div class="mt-4">
-        <a href="/docs" class="btn btn-primary btn-lg">
-            <i class="fas fa-book"></i> Interactive API Documentation
-        </a>
-        <a href="/health" class="btn btn-outline-secondary btn-lg ms-2" target="_blank">
+        <a href="/health" class="btn btn-primary btn-lg" target="_blank">
             <i class="fas fa-heartbeat"></i> Health Check
         </a>
     </div>
@@ -237,8 +221,7 @@ curl -X POST "{{ request.url.scheme }}://{{ request.url.netloc }}/login" \
         <i class="fas fa-code"></i> Powered by FastAPI, Azure Document Intelligence, OpenAI GPT-4 & PostgreSQL
     </p>
     <p>
-        <a href="https://github.com" class="text-white me-3"><i class="fab fa-github"></i> GitHub</a>
-        <a href="/docs" class="text-white"><i class="fas fa-book"></i> API Docs</a>
+        <a href="/health" class="text-white"><i class="fas fa-heartbeat"></i> Health Check</a>
     </p>
 </div>
 {% endblock %}
