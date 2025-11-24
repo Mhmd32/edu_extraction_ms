@@ -999,3 +999,48 @@ async def get_specializations(session: Session = Depends(get_db_session)):
         "specializations": specializations,
         "count": len(specializations)
     }
+
+
+@app.delete("/questions/all")
+async def delete_all_questions(session: Session = Depends(get_db_session)):
+    """
+    Delete all questions from the database.
+    
+    This is a destructive operation that removes all records from the questions table.
+    Use with caution as this cannot be undone.
+    
+    Returns:
+        - deleted_count: Number of questions deleted
+        - status: Success message
+    """
+    logger.info("Attempting to delete all questions from database")
+    
+    try:
+        # Get count before deletion
+        count_statement = select(func.count(Question.id))
+        total_count = session.exec(count_statement).one()
+        
+        # Delete all questions
+        delete_statement = select(Question)
+        questions = session.exec(delete_statement).all()
+        
+        for question in questions:
+            session.delete(question)
+        
+        session.commit()
+        
+        logger.info(f"✅ Successfully deleted {total_count} question(s) from database")
+        
+        return {
+            "status": "success",
+            "message": f"Successfully deleted all questions from database",
+            "deleted_count": total_count
+        }
+    
+    except Exception as e:
+        session.rollback()
+        logger.error(f"❌ Failed to delete questions: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete questions from database: {str(e)}"
+        )
