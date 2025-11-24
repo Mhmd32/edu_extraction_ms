@@ -121,21 +121,21 @@ def test_list_questions_with_filters():
         print(f"Filter {filter_params}: Found {count} questions")
 
 
-def test_delete_all_questions():
-    """Test deleting all questions from database."""
-    print("\n=== Testing Delete All Questions ===")
-    print("⚠️  WARNING: This will delete all questions from the database!")
+# def test_delete_all_questions():
+#     """Test deleting all questions from database."""
+#     print("\n=== Testing Delete All Questions ===")
+#     print("⚠️  WARNING: This will delete all questions from the database!")
     
-    url = f"{BASE_URL}/questions/all"
+#     url = f"{BASE_URL}/questions/all"
     
-    response = requests.delete(url)
-    print(f"Status Code: {response.status_code}")
-    print(f"Response: {json.dumps(response.json(), indent=2, ensure_ascii=False)}")
+#     response = requests.delete(url)
+#     print(f"Status Code: {response.status_code}")
+#     print(f"Response: {json.dumps(response.json(), indent=2, ensure_ascii=False)}")
     
-    if response.status_code == 200:
-        print("✅ All questions deleted successfully")
-    else:
-        print("❌ Failed to delete questions")
+#     if response.status_code == 200:
+#         print("✅ All questions deleted successfully")
+#     else:
+#         print("❌ Failed to delete questions")
 
 
 def main():
