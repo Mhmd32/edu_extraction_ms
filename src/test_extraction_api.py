@@ -121,6 +121,49 @@ def test_list_questions_with_filters():
         print(f"Filter {filter_params}: Found {count} questions")
 
 
+def test_delete_single_question(question_id):
+    """Test deleting a single question by ID."""
+    print("\n=== Testing Delete Single Question ===")
+    
+    url = f"{BASE_URL}/questions/{question_id}"
+    
+    response = requests.delete(url)
+    print(f"Status Code: {response.status_code}")
+    print(f"Response: {json.dumps(response.json(), indent=2, ensure_ascii=False)}")
+    
+    if response.status_code == 200:
+        print(f"✅ Question {question_id} deleted successfully")
+    else:
+        print(f"❌ Failed to delete question {question_id}")
+    
+    return response.json()
+
+
+def test_delete_multiple_questions(question_ids):
+    """Test deleting multiple questions by IDs."""
+    print("\n=== Testing Delete Multiple Questions ===")
+    print(f"Attempting to delete {len(question_ids)} question(s)")
+    
+    url = f"{BASE_URL}/questions"
+    data = {
+        "question_ids": question_ids
+    }
+    
+    response = requests.delete(url, json=data)
+    print(f"Status Code: {response.status_code}")
+    print(f"Response: {json.dumps(response.json(), indent=2, ensure_ascii=False)}")
+    
+    if response.status_code == 200:
+        result = response.json()
+        print(f"✅ Successfully deleted {result.get('deleted_count', 0)} question(s)")
+        if result.get('not_found_ids'):
+            print(f"⚠️  {len(result['not_found_ids'])} question(s) not found")
+    else:
+        print("❌ Failed to delete questions")
+    
+    return response.json()
+
+
 # def test_delete_all_questions():
 #     """Test deleting all questions from database."""
 #     print("\n=== Testing Delete All Questions ===")
@@ -156,6 +199,14 @@ def main():
         # Test question listing
         test_list_questions()
         test_list_questions_with_filters()
+        
+        # Test delete operations (USE WITH CAUTION - uncomment to test)
+        # Example: Delete a single question by ID
+        # test_delete_single_question("your-question-uuid-here")
+        
+        # Example: Delete multiple questions by IDs
+        # question_ids = ["uuid-1", "uuid-2", "uuid-3"]
+        # test_delete_multiple_questions(question_ids)
         
         # Test delete all questions (USE WITH CAUTION - uncomment to test)
         # test_delete_all_questions()

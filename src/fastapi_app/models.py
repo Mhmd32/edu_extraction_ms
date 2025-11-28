@@ -94,6 +94,13 @@ class Question(SQLModel, table=True):
     question_type: typing.Optional[str] = Field(default=None, max_length=50)
     question_difficulty: typing.Optional[str] = Field(default=None, max_length=20)
     page_number: typing.Optional[str] = Field(default=None, max_length=20)
+    # Multiple choice options
+    option1: typing.Optional[str] = Field(default=None)
+    option2: typing.Optional[str] = Field(default=None)
+    option3: typing.Optional[str] = Field(default=None)
+    option4: typing.Optional[str] = Field(default=None)
+    option5: typing.Optional[str] = Field(default=None)
+    option6: typing.Optional[str] = Field(default=None)
     answer_steps: typing.Optional[str] = Field(default=None)
     correct_answer: typing.Optional[str] = Field(default=None)
     uploaded_by: str = Field(max_length=100)

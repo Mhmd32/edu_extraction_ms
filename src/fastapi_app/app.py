@@ -273,9 +273,13 @@ async def extract_questions_from_markdown(markdown_content: str, page_metadata: 
         6. اتبع القيم التالية فقط:
            - "question_type": "Descriptive" | "Multiple Choice" | "True/False" | "Short Answer"
            - "question_difficulty": "Easy" | "Medium" | "Hard"
-        7. اترك الحقول الفارغة كما هي (مثل "page_number").
-        8. لا تضف علامات تنسيق (Markdown، LaTeX، HTML) إلى النصوص أو الرموز.
-        9. لا تُدرج تعليقات أو نصوص خارج JSON؛ أعد فقط مصفوفة JSON بالصيغ التالية:
+        7. **للأسئلة من نوع "Multiple Choice": استخرج الخيارات بالترتيب وضعها في حقول option1, option2, option3, option4, option5, option6**
+           - استخرج الخيارات كما هي مع الحفاظ على الرموز والترقيم (أ، ب، ج، د) أو (1، 2، 3، 4) أو (a، b، c، d)
+           - إذا كان هناك أقل من 6 خيارات، اترك الحقول الزائدة فارغة
+           - احفظ كل خيار كنص كامل مع الرموز الرياضية أو العلمية
+        8. اترك الحقول الفارغة كما هي (مثل "page_number").
+        9. لا تضف علامات تنسيق (Markdown، LaTeX، HTML) إلى النصوص أو الرموز.
+        10. لا تُدرج تعليقات أو نصوص خارج JSON؛ أعد فقط مصفوفة JSON بالصيغ التالية:
 
         [
         {{
@@ -284,6 +288,12 @@ async def extract_questions_from_markdown(markdown_content: str, page_metadata: 
             "question_type": "Descriptive|Multiple Choice|True/False|Fill in the blank|Short Answer" (إجباري),
             "question_difficulty": "Easy|Medium|Hard" (إجباري),
             "page_number": "",
+            "option1": "الخيار الأول (فقط لأسئلة Multiple Choice)" (اختياري),
+            "option2": "الخيار الثاني (فقط لأسئلة Multiple Choice)" (اختياري),
+            "option3": "الخيار الثالث (فقط لأسئلة Multiple Choice)" (اختياري),
+            "option4": "الخيار الرابع (فقط لأسئلة Multiple Choice)" (اختياري),
+            "option5": "الخيار الخامس (فقط لأسئلة Multiple Choice)" (اختياري),
+            "option6": "الخيار السادس (فقط لأسئلة Multiple Choice)" (اختياري),
             "answer_steps": "خطوات الحل أو التفسير إن وجدت (اختياري)",
             "correct_answer": "الإجابة النهائية إن وجدت (اختياري)"
         }}
@@ -392,6 +402,13 @@ async def store_questions_in_db(
             answer_steps_raw = q.get("answer_steps")
             correct_answer_raw = q.get("correct_answer")
             lesson_title_raw = q.get("lesson_title")
+            # Extract option fields for multiple choice questions
+            option1_raw = q.get("option1")
+            option2_raw = q.get("option2")
+            option3_raw = q.get("option3")
+            option4_raw = q.get("option4")
+            option5_raw = q.get("option5")
+            option6_raw = q.get("option6")
         except (KeyError, ValueError, TypeError) as exc:
             logger.error(f"Invalid question payload for DB insert: {exc} - data: {q}")
             raise HTTPException(status_code=500, detail="Invalid question data received from extraction.") from exc
@@ -420,6 +437,14 @@ async def store_questions_in_db(
         correct_answer = str(correct_answer_raw).strip() if correct_answer_raw and str(correct_answer_raw).strip() else None
         lesson_title = str(lesson_title_raw).strip() if lesson_title_raw and str(lesson_title_raw).strip() else None
         
+        # Process option fields
+        option1 = str(option1_raw).strip() if option1_raw and str(option1_raw).strip() else None
+        option2 = str(option2_raw).strip() if option2_raw and str(option2_raw).strip() else None
+        option3 = str(option3_raw).strip() if option3_raw and str(option3_raw).strip() else None
+        option4 = str(option4_raw).strip() if option4_raw and str(option4_raw).strip() else None
+        option5 = str(option5_raw).strip() if option5_raw and str(option5_raw).strip() else None
+        option6 = str(option6_raw).strip() if option6_raw and str(option6_raw).strip() else None
+        
         if not lesson_title:
             logger.error(f"Missing lesson_title for generated question payload: {q}")
             raise HTTPException(status_code=500, detail="Missing lesson name for database insert.")
@@ -436,6 +461,12 @@ async def store_questions_in_db(
             question_type=question_type,
             question_difficulty=question_difficulty,
             page_number=page_number,
+            option1=option1,
+            option2=option2,
+            option3=option3,
+            option4=option4,
+            option5=option5,
+            option6=option6,
             answer_steps=answer_steps,
             correct_answer=correct_answer,
             uploaded_by=uploaded_by_value,
@@ -833,6 +864,12 @@ class QuestionResponse(BaseModel):
     question_type: Optional[str] = None
     question_difficulty: Optional[str] = None
     page_number: Optional[str] = None
+    option1: Optional[str] = None
+    option2: Optional[str] = None
+    option3: Optional[str] = None
+    option4: Optional[str] = None
+    option5: Optional[str] = None
+    option6: Optional[str] = None
     answer_steps: Optional[str] = None
     correct_answer: Optional[str] = None
     uploaded_by: str
@@ -915,6 +952,120 @@ async def get_question(
         raise HTTPException(status_code=404, detail="Question not found")
     
     return question
+
+
+@app.delete("/questions/{question_id}")
+async def delete_question(
+    question_id: uuid.UUID,
+    session: Session = Depends(get_db_session)
+):
+    """
+    Delete a specific question by ID.
+    
+    - **question_id**: The UUID of the question to delete
+    
+    Returns:
+        - status: Success or error status
+        - message: Confirmation message
+        - deleted_id: The UUID of the deleted question
+    """
+    logger.info(f"Attempting to delete question with ID: {question_id}")
+    
+    try:
+        # Find the question
+        question = session.exec(select(Question).where(Question.id == question_id)).first()
+        
+        if not question:
+            raise HTTPException(status_code=404, detail=f"Question with ID {question_id} not found")
+        
+        # Delete the question
+        session.delete(question)
+        session.commit()
+        
+        logger.info(f"✅ Successfully deleted question with ID: {question_id}")
+        
+        return {
+            "status": "success",
+            "message": f"Successfully deleted question",
+            "deleted_id": str(question_id)
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        logger.error(f"❌ Failed to delete question {question_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete question: {str(e)}"
+        )
+
+
+class DeleteQuestionsRequest(BaseModel):
+    question_ids: list[uuid.UUID]
+
+
+@app.delete("/questions")
+async def delete_multiple_questions(
+    request: DeleteQuestionsRequest,
+    session: Session = Depends(get_db_session)
+):
+    """
+    Delete multiple questions by their IDs.
+    
+    Request body:
+        - question_ids: List of question UUIDs to delete
+    
+    Returns:
+        - status: Success or error status
+        - message: Confirmation message
+        - deleted_count: Number of questions successfully deleted
+        - not_found_ids: List of IDs that were not found
+    """
+    logger.info(f"Attempting to delete {len(request.question_ids)} question(s)")
+    
+    if not request.question_ids:
+        raise HTTPException(status_code=400, detail="question_ids list cannot be empty")
+    
+    try:
+        deleted_count = 0
+        not_found_ids = []
+        
+        for question_id in request.question_ids:
+            # Find the question
+            question = session.exec(select(Question).where(Question.id == question_id)).first()
+            
+            if question:
+                session.delete(question)
+                deleted_count += 1
+            else:
+                not_found_ids.append(str(question_id))
+                logger.warning(f"Question with ID {question_id} not found")
+        
+        session.commit()
+        
+        logger.info(f"✅ Successfully deleted {deleted_count} question(s)")
+        
+        response = {
+            "status": "success",
+            "message": f"Successfully deleted {deleted_count} question(s)",
+            "deleted_count": deleted_count,
+            "requested_count": len(request.question_ids)
+        }
+        
+        if not_found_ids:
+            response["not_found_ids"] = not_found_ids
+            response["message"] += f", {len(not_found_ids)} question(s) not found"
+        
+        return response
+    
+    except Exception as e:
+        session.rollback()
+        logger.error(f"❌ Failed to delete questions: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete questions: {str(e)}"
+        )
 
 
 # ===== Filter Options Endpoints =====
