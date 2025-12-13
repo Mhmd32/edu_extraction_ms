@@ -209,10 +209,100 @@ def test_option_field_structure():
         print(f"❌ Error: {response.status_code}")
 
 
+def test_comprehension_questions():
+    """Test getting comprehension questions with passages."""
+    print("\n=== Testing Comprehension Questions ===")
+    
+    url = f"{BASE_URL}/questions"
+    params = {
+        "question_type": "Comprehension",
+        "limit": 5
+    }
+    
+    response = requests.get(url, params=params)
+    print(f"Status Code: {response.status_code}")
+    
+    if response.status_code == 200:
+        questions = response.json()
+        print(f"Found {len(questions)} comprehension question(s)")
+        
+        if questions:
+            print("\n--- Sample Comprehension Question ---")
+            q = questions[0]
+            print(f"Question ID: {q['id']}")
+            print(f"Subject: {q['subject_name']}")
+            print(f"Type: {q['question_type']}")
+            
+            print(f"\n📖 Passage (in option1):")
+            passage = q.get('option1')
+            if passage:
+                # Show first 200 characters of passage
+                print(f"  {passage[:200]}{'...' if len(passage) > 200 else ''}")
+                print(f"  (Total passage length: {len(passage)} characters)")
+            else:
+                print("  ⚠️  No passage found in option1")
+            
+            print(f"\n❓ Question:")
+            print(f"  {q['question']}")
+            
+            if q.get('correct_answer'):
+                print(f"\n✅ Answer:")
+                print(f"  {q['correct_answer']}")
+        else:
+            print("\n⚠️  No comprehension questions found.")
+            print("Extract PDFs with reading comprehension questions to test this feature.")
+    else:
+        print(f"❌ Error: {response.status_code}")
+
+
+def test_display_comprehension_format():
+    """Display comprehension questions in a readable format."""
+    print("\n=== Comprehension Question Display Format ===")
+    
+    url = f"{BASE_URL}/questions"
+    params = {
+        "question_type": "Comprehension",
+        "limit": 2
+    }
+    
+    response = requests.get(url, params=params)
+    
+    if response.status_code == 200:
+        questions = response.json()
+        
+        if not questions:
+            print("No comprehension questions found.")
+            return
+        
+        print(f"Found {len(questions)} question(s). Displaying:\n")
+        print("=" * 70)
+        
+        for idx, q in enumerate(questions, 1):
+            print(f"\n📚 Question {idx}:")
+            print("-" * 70)
+            
+            # Display passage
+            if q.get('option1'):
+                print("\n📖 Read the following passage:\n")
+                print(f"{q['option1']}\n")
+                print("-" * 70)
+            
+            # Display question
+            print(f"\n❓ {q['question']}")
+            
+            # Display answer if available
+            if q.get('correct_answer'):
+                print(f"\n✅ Answer: {q['correct_answer']}")
+            
+            print("\n" + "=" * 70)
+    else:
+        print(f"❌ Error: {response.status_code}")
+
+
 def main():
     """Run all tests."""
     print("=" * 70)
-    print("Multiple Choice Options Feature - Test Suite")
+    print("Question Features Test Suite")
     print("=" * 70)
     
     try:
@@ -231,6 +321,12 @@ def main():
         # Display quiz format
         test_display_quiz_format()
         
+        # Test comprehension questions
+        test_comprehension_questions()
+        
+        # Display comprehension format
+        test_display_comprehension_format()
+        
         print("\n" + "=" * 70)
         print("All tests completed!")
         print("=" * 70)
@@ -240,6 +336,10 @@ def main():
         print("    1. Run the database migration (migrate_add_options.py)")
         print("    2. Extract new PDFs with multiple choice questions")
         print("    3. Re-extract existing PDFs to get options")
+        print("\n  - For comprehension questions:")
+        print("    1. Extract PDFs with reading comprehension passages")
+        print("    2. Questions like 'Read the passage and answer...'")
+        print("    3. The passage will be stored in option1 field")
         
     except requests.exceptions.ConnectionError:
         print("\n❌ Error: Could not connect to the API server.")

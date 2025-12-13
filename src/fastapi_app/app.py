@@ -256,6 +256,7 @@ async def extract_questions_from_markdown(markdown_content: str, page_metadata: 
         - الفيزياء: الصيغ الفيزيائية، الوحدات، الثوابت (مثل c, h, G, k)، الميكانيكا، الكهرباء، المغناطيسية
         - الأحياء: المصطلحات البيولوجية، الأسماء العلمية للكائنات، التركيب الخلوي، العمليات الحيوية
         - الكيمياء: الصيغ الكيميائية، المعادلات الكيميائية، الجدول الدوري، التفاعلات
+        - اللغة العربية والإنجليزية: النصوص الأدبية، القطع القرائية، الفقرات، التحليل الأدبي
         - الرموز والترميز: الرموز الرياضية (∑, ∫, ∂, ∇, ∞, π, e، √، ≠، ≤، ≥، ±، ≈)
         - الرموز الفيزيائية (Δ, λ, μ, σ, θ، Ω، α، β)
         - الرموز الكيميائية (H₂O، CO₂، NaCl، Fe³⁺، OH⁻ وغيرها)
@@ -271,24 +272,35 @@ async def extract_questions_from_markdown(markdown_content: str, page_metadata: 
         4. لا تفسر الرموز أو تحاول كتابتها بالحروف (مثل كتابة √ بدلاً من "جذر").
         5. احتفظ باللغة الأصلية كما في المصدر، سواء عربية أو إنجليزية أو غيرها.
         6. اتبع القيم التالية فقط:
-           - "question_type": "Descriptive" | "Multiple Choice" | "True/False" | "Short Answer"
+           - "question_type": "Descriptive" | "Multiple Choice" | "True/False" | "Short Answer" | "Comprehension"
            - "question_difficulty": "Easy" | "Medium" | "Hard"
+        
         7. **للأسئلة من نوع "Multiple Choice": استخرج الخيارات بالترتيب وضعها في حقول option1, option2, option3, option4, option5, option6**
            - استخرج الخيارات كما هي مع الحفاظ على الرموز والترقيم (أ، ب، ج، د) أو (1، 2، 3، 4) أو (a، b، c، d)
            - إذا كان هناك أقل من 6 خيارات، اترك الحقول الزائدة فارغة
            - احفظ كل خيار كنص كامل مع الرموز الرياضية أو العلمية
-        8. اترك الحقول الفارغة كما هي (مثل "page_number").
-        9. لا تضف علامات تنسيق (Markdown، LaTeX، HTML) إلى النصوص أو الرموز.
-        10. لا تُدرج تعليقات أو نصوص خارج JSON؛ أعد فقط مصفوفة JSON بالصيغ التالية:
+        
+        8. **⭐ للأسئلة من نوع "Comprehension" (أسئلة الفهم والاستيعاب التي تعتمد على فقرة أو قطعة نصية):**
+           - إذا كان السؤال يشير إلى فقرة أو قطعة نصية (مثل: "أجب من الفقرة أعلاه"، "استخرج من القطعة التالية"، "بناءً على النص أعلاه"، "اقرأ الفقرة ثم أجب")
+           - حدد نوع السؤال كـ "Comprehension"
+           - **ضع الفقرة أو القطعة النصية الكاملة في حقل option1**
+           - ضع السؤال الفعلي في حقل "question" (بدون الفقرة)
+           - إذا كانت هناك عدة أسئلة على نفس الفقرة، كرر الفقرة في option1 لكل سؤال
+           - حاول استخراج الإجابة من الفقرة وضعها في "correct_answer" إن أمكن
+           - الفقرة عادة تكون قريبة من السؤال في نفس الصفحة
+        
+        9. اترك الحقول الفارغة كما هي (مثل "page_number").
+        10. لا تضف علامات تنسيق (Markdown، LaTeX، HTML) إلى النصوص أو الرموز.
+        11. لا تُدرج تعليقات أو نصوص خارج JSON؛ أعد فقط مصفوفة JSON بالصيغ التالية:
 
         [
         {{
             "lesson_title": "اسم الدرس أو الوحدة" (إجباري),
             "question": "نص السؤال الكامل كما ورد في المصدر، مع الحفاظ على الرموز الدقيقة (مثل √x، H₂O، ∫ x dx، Na⁺، ΔE = mc²، إلخ)",
-            "question_type": "Descriptive|Multiple Choice|True/False|Fill in the blank|Short Answer" (إجباري),
+            "question_type": "Descriptive|Multiple Choice|True/False|Fill in the blank|Short Answer|Comprehension" (إجباري),
             "question_difficulty": "Easy|Medium|Hard" (إجباري),
             "page_number": "",
-            "option1": "الخيار الأول (فقط لأسئلة Multiple Choice)" (اختياري),
+            "option1": "للأسئلة Multiple Choice: الخيار الأول | للأسئلة Comprehension: الفقرة أو القطعة النصية الكاملة" (اختياري),
             "option2": "الخيار الثاني (فقط لأسئلة Multiple Choice)" (اختياري),
             "option3": "الخيار الثالث (فقط لأسئلة Multiple Choice)" (اختياري),
             "option4": "الخيار الرابع (فقط لأسئلة Multiple Choice)" (اختياري),
@@ -298,6 +310,11 @@ async def extract_questions_from_markdown(markdown_content: str, page_metadata: 
             "correct_answer": "الإجابة النهائية إن وجدت (اختياري)"
         }}
         ]
+
+        **أمثلة على أسئلة Comprehension:**
+        - "اقرأ الفقرة التالية ثم أجب: [الفقرة]... ما هو...؟" → السؤال: "ما هو...؟" | option1: "[الفقرة الكاملة]"
+        - "من الفقرة أعلاه، استخرج..." → السؤال: "استخرج..." | option1: "[الفقرة المشار إليها]"
+        - "بناءً على النص السابق، ما..." → السؤال: "ما..." | option1: "[النص المشار إليه]"
 
 المحتوى للتحليل (Markdown):
 {markdown_content}
@@ -390,6 +407,7 @@ async def store_questions_in_db(
         "True/False",
         "Fill in the blank",
         "Short Answer",
+        "Comprehension",
     }
     allowed_difficulties = {"Easy", "Medium", "Hard"}
     
