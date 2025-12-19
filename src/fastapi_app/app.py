@@ -1,8 +1,10 @@
+import asyncio
 import hashlib
 import json
 import logging
 import os
 import pathlib
+import re
 import shutil
 import tempfile
 import traceback
@@ -291,25 +293,27 @@ async def extract_questions_from_markdown(markdown_content: str, page_metadata: 
         
         9. اترك الحقول الفارغة كما هي (مثل "page_number").
         10. لا تضف علامات تنسيق (Markdown، LaTeX، HTML) إلى النصوص أو الرموز.
-        11. لا تُدرج تعليقات أو نصوص خارج JSON؛ أعد فقط مصفوفة JSON بالصيغ التالية:
+        11. لا تُدرج تعليقات أو نصوص خارج JSON؛ أعد فقط كائن JSON صالح بالصيغة التالية:
 
-        [
         {{
-            "lesson_title": "اسم الدرس أو الوحدة" (إجباري),
-            "question": "نص السؤال الكامل كما ورد في المصدر، مع الحفاظ على الرموز الدقيقة (مثل √x، H₂O، ∫ x dx، Na⁺، ΔE = mc²، إلخ)",
-            "question_type": "Descriptive|Multiple Choice|True/False|Fill in the blank|Short Answer|Comprehension" (إجباري),
-            "question_difficulty": "Easy|Medium|Hard" (إجباري),
-            "page_number": "",
-            "option1": "للأسئلة Multiple Choice: الخيار الأول | للأسئلة Comprehension: الفقرة أو القطعة النصية الكاملة" (اختياري),
-            "option2": "الخيار الثاني (فقط لأسئلة Multiple Choice)" (اختياري),
-            "option3": "الخيار الثالث (فقط لأسئلة Multiple Choice)" (اختياري),
-            "option4": "الخيار الرابع (فقط لأسئلة Multiple Choice)" (اختياري),
-            "option5": "الخيار الخامس (فقط لأسئلة Multiple Choice)" (اختياري),
-            "option6": "الخيار السادس (فقط لأسئلة Multiple Choice)" (اختياري),
-            "answer_steps": "خطوات الحل أو التفسير إن وجدت (اختياري)",
-            "correct_answer": "الإجابة النهائية إن وجدت (اختياري)"
+            "questions": [
+                {{
+                    "lesson_title": "اسم الدرس أو الوحدة",
+                    "question": "نص السؤال الكامل كما ورد في المصدر، مع الحفاظ على الرموز الدقيقة (مثل √x، H₂O، ∫ x dx، Na⁺، ΔE = mc²، إلخ)",
+                    "question_type": "Descriptive|Multiple Choice|True/False|Fill in the blank|Short Answer|Comprehension",
+                    "question_difficulty": "Easy|Medium|Hard",
+                    "page_number": "",
+                    "option1": "للأسئلة Multiple Choice: الخيار الأول | للأسئلة Comprehension: الفقرة أو القطعة النصية الكاملة",
+                    "option2": "الخيار الثاني (فقط لأسئلة Multiple Choice)",
+                    "option3": "الخيار الثالث (فقط لأسئلة Multiple Choice)",
+                    "option4": "الخيار الرابع (فقط لأسئلة Multiple Choice)",
+                    "option5": "الخيار الخامس (فقط لأسئلة Multiple Choice)",
+                    "option6": "الخيار السادس (فقط لأسئلة Multiple Choice)",
+                    "answer_steps": "خطوات الحل أو التفسير إن وجدت",
+                    "correct_answer": "الإجابة النهائية إن وجدت"
+                }}
+            ]
         }}
-        ]
 
         **أمثلة على أسئلة Comprehension:**
         - "اقرأ الفقرة التالية ثم أجب: [الفقرة]... ما هو...؟" → السؤال: "ما هو...؟" | option1: "[الفقرة الكاملة]"
@@ -321,40 +325,151 @@ async def extract_questions_from_markdown(markdown_content: str, page_metadata: 
 
 أعد مصفوفة JSON فقط دون أي شروحات إضافية."""
 
-    try:
-        response = await config.openai_client.chat.completions.create(
-            model=config.openai_model,
-            messages=[
-                {"role": "system", "content": "أنت خبير في التعليم متخصص في تحليل المحتوى واستخراج الأسئلة من الكتب."},
-                {"role": "user", "content": arabic_prompt}
-            ],
-            temperature=0.05,
-            max_tokens=8000,
-        )
+    # Helper function to clean and parse JSON
+    def clean_and_parse_json(text: str) -> list:
+        """Attempt to clean and parse JSON with multiple strategies."""
+        # Strategy 1: Remove markdown code blocks
+        cleaned = text.strip()
+        if cleaned.startswith("```json"):
+            cleaned = cleaned[7:]
+        elif cleaned.startswith("```"):
+            cleaned = cleaned[3:]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        cleaned = cleaned.strip()
         
-        result_text = response.choices[0].message.content.strip()
+        # Strategy 2: Try direct parse
+        try:
+            data = json.loads(cleaned)
+            if isinstance(data, list):
+                return data
+            elif isinstance(data, dict) and "questions" in data:
+                return data["questions"]
+            else:
+                raise ValueError("Expected a list or dict with 'questions' key")
+        except json.JSONDecodeError as e:
+            logger.warning(f"Initial JSON parse failed: {e}")
         
-        # Remove markdown code block markers if present
-        if result_text.startswith("```json"):
-            result_text = result_text[7:-3].strip()
-        elif result_text.startswith("```"):
-            result_text = result_text[3:-3].strip()
+        # Strategy 3: Fix common JSON issues
+        # Remove trailing commas before closing brackets
+        cleaned = re.sub(r',(\s*[}\]])', r'\1', cleaned)
+        # Fix unescaped quotes in strings (basic attempt)
+        # Replace single quotes with double quotes if they appear to be string delimiters
+        # This is risky but can help with some malformed JSON
         
-        questions = json.loads(result_text)
+        try:
+            data = json.loads(cleaned)
+            if isinstance(data, list):
+                return data
+            elif isinstance(data, dict) and "questions" in data:
+                return data["questions"]
+            else:
+                raise ValueError("Expected a list or dict with 'questions' key")
+        except json.JSONDecodeError as e:
+            logger.warning(f"JSON parse after cleanup failed: {e}")
         
-        if not isinstance(questions, list):
-            raise ValueError("Expected a list of questions in JSON array.")
+        # Strategy 4: Try to extract JSON array using regex
+        # Look for [ ... ] pattern
+        array_match = re.search(r'\[.*\]', cleaned, re.DOTALL)
+        if array_match:
+            try:
+                data = json.loads(array_match.group(0))
+                if isinstance(data, list):
+                    return data
+            except json.JSONDecodeError:
+                pass
         
-        for q in questions:
-            if not isinstance(q, dict):
-                raise ValueError("Each question entry must be a JSON object.")
-        
-        return questions
+        # If all strategies fail, raise the original error
+        raise json.JSONDecodeError("Could not parse JSON after multiple attempts", cleaned, 0)
     
-    except Exception as e:
-        logger.error(f"OpenAI extraction error: {e}")
-        logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"OpenAI extraction failed: {e}")
+    # Retry logic with exponential backoff
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            logger.info(f"OpenAI extraction attempt {attempt + 1}/{max_retries} for page {page_metadata.get('page_number', 'unknown')}")
+            
+            response = await config.openai_client.chat.completions.create(
+                model=config.openai_model,
+                messages=[
+                    {"role": "system", "content": "أنت خبير في التعليم متخصص في تحليل المحتوى واستخراج الأسئلة من الكتب. يجب أن تُرجع مصفوفة JSON صالحة فقط."},
+                    {"role": "user", "content": arabic_prompt}
+                ],
+                temperature=0.05,
+                max_tokens=8000,
+                response_format={"type": "json_object"}
+            )
+            
+            result_text = response.choices[0].message.content.strip()
+            
+            # Log the raw response for debugging (truncated)
+            logger.info(f"OpenAI response length: {len(result_text)} chars")
+            if len(result_text) < 500:
+                logger.debug(f"OpenAI response: {result_text}")
+            
+            # Try to parse the JSON
+            try:
+                # First try: direct parse
+                data = json.loads(result_text)
+                
+                # Handle both array and object with 'questions' key
+                if isinstance(data, list):
+                    questions = data
+                elif isinstance(data, dict):
+                    if "questions" in data:
+                        questions = data["questions"]
+                    else:
+                        # If it's a dict but no 'questions' key, wrap it
+                        questions = [data]
+                else:
+                    raise ValueError("Expected a list or dict with 'questions' key")
+                
+                if not isinstance(questions, list):
+                    raise ValueError("Questions must be a list")
+                
+                for q in questions:
+                    if not isinstance(q, dict):
+                        raise ValueError("Each question entry must be a JSON object")
+                
+                logger.info(f"✅ Successfully extracted {len(questions)} questions")
+                return questions
+                
+            except json.JSONDecodeError as e:
+                logger.warning(f"JSON parse error: {e}")
+                # Log problematic JSON for debugging
+                logger.error(f"Problematic JSON (first 1000 chars): {result_text[:1000]}")
+                logger.error(f"Problematic JSON (around error at char {e.pos}): {result_text[max(0, e.pos-100):e.pos+100]}")
+                
+                # Try cleaning strategies
+                questions = clean_and_parse_json(result_text)
+                logger.info(f"✅ Successfully extracted {len(questions)} questions after cleanup")
+                return questions
+        
+        except json.JSONDecodeError as e:
+            if attempt < max_retries - 1:
+                wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
+                logger.warning(f"JSON parse failed on attempt {attempt + 1}, retrying in {wait_time}s...")
+                await asyncio.sleep(wait_time)
+            else:
+                logger.error(f"OpenAI extraction error after {max_retries} attempts: {e}")
+                logger.error(traceback.format_exc())
+                # Return empty list instead of failing the entire extraction
+                logger.warning(f"⚠️ Returning empty list for page {page_metadata.get('page_number', 'unknown')} due to persistent JSON errors")
+                return []
+        
+        except Exception as e:
+            logger.error(f"OpenAI extraction error on attempt {attempt + 1}: {e}")
+            logger.error(traceback.format_exc())
+            if attempt < max_retries - 1:
+                wait_time = 2 ** attempt
+                logger.warning(f"Retrying in {wait_time}s...")
+                await asyncio.sleep(wait_time)
+            else:
+                logger.error(f"OpenAI extraction failed after {max_retries} attempts")
+                # Return empty list instead of failing
+                return []
+    
+    # Should not reach here, but return empty list as fallback
+    return []
 
 
 # ===== Database Persistence =====
@@ -734,6 +849,7 @@ async def extract_questions(
         
         pages_attempted = 0
         pages_skipped = 0
+        pages_failed = 0
         total_questions = 0
         page_summaries = []
         
@@ -762,7 +878,23 @@ async def extract_questions(
             
             try:
                 extracted_questions = await extract_questions_from_markdown(page_content, page_metadata)
+                
+                # Check if extraction returned empty list (which happens on persistent failures)
+                if not extracted_questions:
+                    logger.warning(f"⚠️ No questions extracted from page {page_number}")
+                    pages_failed += 1
+                    page_summaries.append(
+                        {
+                            "page_number": page_number,
+                            "questions_extracted": 0,
+                            "status": "no_questions_found",
+                        }
+                    )
+                    continue
+                    
             except HTTPException as http_exc:
+                logger.error(f"HTTPException on page {page_number}: {http_exc.detail}")
+                pages_failed += 1
                 page_summaries.append(
                     {
                         "page_number": page_number,
@@ -771,8 +903,12 @@ async def extract_questions(
                         "error": http_exc.detail,
                     }
                 )
-                raise
+                # Continue processing other pages instead of raising
+                continue
             except Exception as exc:
+                logger.error(f"Exception on page {page_number}: {exc}")
+                logger.error(traceback.format_exc())
+                pages_failed += 1
                 page_summaries.append(
                     {
                         "page_number": page_number,
@@ -781,7 +917,8 @@ async def extract_questions(
                         "error": str(exc),
                     }
                 )
-                raise HTTPException(status_code=500, detail=f"OpenAI extraction failed for page {page_number}: {exc}") from exc
+                # Continue processing other pages instead of raising
+                continue
             
             # Sanitize and enrich questions
             sanitized_questions = []
@@ -837,19 +974,22 @@ async def extract_questions(
                 }
             )
         
-        status_message = (
-            f"Processed {pages_attempted} page(s); stored {total_questions} question(s)."
-            if total_questions
-            else "Processed pages but no questions were extracted."
-        )
+        # Build status message
+        if pages_failed > 0:
+            status_message = f"Processed {pages_attempted} page(s) with {pages_failed} failure(s); stored {total_questions} question(s)."
+        elif total_questions > 0:
+            status_message = f"Processed {pages_attempted} page(s); stored {total_questions} question(s)."
+        else:
+            status_message = "Processed pages but no questions were extracted."
         
         response_payload = {
-            "status": "success",
+            "status": "success" if pages_failed == 0 else "partial_success",
             "message": status_message,
             "summary": {
                 "total_pages_detected": total_pages,
                 "pages_with_content": pages_attempted,
                 "pages_skipped": pages_skipped,
+                "pages_failed": pages_failed,
                 "questions_stored": total_questions,
                 "pages": page_summaries,
             },
