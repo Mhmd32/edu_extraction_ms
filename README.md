@@ -1,7 +1,7 @@
 ---
 page_type: sample
 languages:
-- azdeveloper
+- azdeveloper 
 - python
 - bicep
 - html
